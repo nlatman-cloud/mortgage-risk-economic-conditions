@@ -11,7 +11,7 @@ This project analyzes **397,423 mortgages** across the 2015–2022 Freddie Mac o
 1. How are changing local economic conditions associated with serious mortgage delinquency?
 2. How well can information available at origination identify mortgages with elevated future delinquency risk across changing economic environments?
 
-The project combines longitudinal data engineering, discrete-time statistical modeling, and out-of-time machine-learning validation.
+The project combines longitudinal data engineering, discrete-time statistical modeling, out-of-time machine-learning validation, and distributed data analysis with PySpark and Databricks.
 
 ## Data
 
@@ -163,6 +163,22 @@ For the highest predicted-risk decile:
 
 The results suggest that the model is more useful for **risk stratification and prioritization** than as a perfectly calibrated estimate of absolute delinquency probability.
 
+## Databricks and PySpark
+
+The processed multi-vintage mortgage dataset was also loaded into **Databricks** as a managed table to reproduce key portfolio analyses using **PySpark**.
+
+The Databricks workflow:
+
+- loaded the processed **397,423-row, 31-column** mortgage dataset into the Databricks workspace
+- queried the data through the Spark DataFrame API
+- reproduced mortgage counts and serious-delinquency rates across the 2015–2022 origination vintages
+- performed distributed aggregation of serious-delinquency incidence across credit-score groups
+- validated that the Databricks results were consistent with the locally processed modeling dataset
+
+For example, the PySpark analysis showed a strong gradient in 24-month serious-delinquency incidence across credit-score groups, ranging from approximately **5.86% for mortgages with credit scores below 650** to approximately **0.43% for mortgages with scores of 800 or higher**.
+
+This portion of the project demonstrates how the analytical workflow can be transferred from local Pandas-based development to a cloud-based Spark environment for larger-scale data processing and analysis.
+
 ## Business Implications
 
 The analysis supports several practical risk-management conclusions:
@@ -207,10 +223,25 @@ Mortgage Risk Project/
 │   ├── 02_exploratory_analysis.ipynb
 │   ├── 03_baseline_model.ipynb
 │   ├── 04_multi_vintage_ingestion.ipynb
-│   └── 05_macroeconomic_data.ipynb
+│   ├── 05_macroeconomic_data.ipynb
+│   └── 06_databricks_analysis.ipynb
 ├── reports/
+│   ├── out_of_time_performance.png
+│   ├── risk_decile_lift.png
+│   └── vintage_delinquency_rates.png
 ├── src/
-│   └── data_processing.py
+│   ├── data_processing.py
+│   └── make_figures.py
 ├── .gitignore
 ├── README.md
 └── requirements.txt
+```
+
+## Tools and Technologies
+
+**Data Analysis:** Python, Pandas, NumPy  
+**Statistical Modeling:** statsmodels, scikit-learn  
+**Machine Learning:** Logistic Regression, Histogram Gradient Boosting  
+**Cloud & Distributed Computing:** Databricks, PySpark  
+**Visualization:** Matplotlib, Seaborn  
+**Version Control:** Git, GitHub
