@@ -2,6 +2,8 @@
 
 An analysis of how borrower characteristics and changing local economic conditions relate to serious mortgage delinquency, using Freddie Mac loan-level performance data from 2015–2022.
 
+Key results: 397K mortgages · 8.9M loan-months · +13.5% near-term delinquency odds per 1pp increase in year-over-year unemployment change · 0.733 locked-test ROC-AUC · up to 4.0× top-decile risk lift
+
 ## Overview
 
 Mortgage performance depends not only on borrower and loan characteristics at origination, but also on the economic environment borrowers experience after receiving a mortgage.
@@ -11,13 +13,13 @@ This project analyzes **397,423 mortgages** across the 2015–2022 Freddie Mac o
 1. How are changing local economic conditions associated with serious mortgage delinquency?
 2. How well can information available at origination identify mortgages with elevated future delinquency risk across changing economic environments?
 
-The project combines longitudinal data engineering, discrete-time statistical modeling, out-of-time machine-learning validation, and distributed data analysis with PySpark and Databricks.
+The project combines longitudinal data engineering, discrete-time statistical modeling, out-of-time machine-learning validation, and a Databricks/PySpark extension for cloud-based data analysis.
 
 ## Data
 
 ### Mortgage Data
 
-Mortgage origination and monthly performance data come from the Freddie Mac Single-Family Loan-Level Dataset.
+Mortgage origination and monthly performance data come from the [Freddie Mac Single-Family Loan-Level Dataset](https://www.freddiemac.com/research/datasets).
 
 The analysis uses sample vintages from **2015 through 2022**, producing:
 
@@ -32,9 +34,9 @@ Raw mortgage files are excluded from the repository.
 
 Mortgage performance is combined with:
 
-- **Bureau of Labor Statistics:** state unemployment rates
-- **Federal Housing Finance Agency:** state-level house price indexes
-- **Freddie Mac PMMS:** historical mortgage rates
+- **[Bureau of Labor Statistics](https://www.bls.gov/web/laus.supp.toc.htm):** seasonally adjusted state unemployment rates
+- **[Federal Housing Finance Agency](https://www.fhfa.gov/data/hpi/datasets):** seasonally adjusted state-level house price indexes
+- **[Freddie Mac PMMS](https://www.freddiemac.com/pmms/pmms_archives):** historical mortgage rates
 
 Economic conditions are aligned to each mortgage by geography and calendar month.
 
@@ -94,11 +96,11 @@ This removed approximately **59,740 post-event loan-month observations** while r
 
 A discrete-time logistic model was used to estimate the probability of first serious delinquency during each observed loan month.
 
-The primary model uses a **three-month lag** for economic conditions and controls for borrower characteristics, loan characteristics, mortgage vintage, loan age, and geography.
+The primary model uses a three-month lag between economic conditions and delinquency outcomes and controls for borrower characteristics, loan characteristics, mortgage vintage, and loan age.
 
 The analysis found that:
 
-- A **1 percentage-point increase in state unemployment** was associated with approximately **13.5% higher odds** of near-term serious delinquency, holding included controls constant.
+- A 1 percentage-point increase in the year-over-year change in state unemployment was associated with approximately 13.5% higher odds of near-term serious delinquency, holding included controls constant.
 - Stronger year-over-year home-price growth was associated with lower near-term delinquency odds.
 - Credit score and debt-to-income ratio remained important baseline indicators of financial vulnerability.
 - Interactions between DTI and unemployment, and between CLTV and home-price growth, provided little evidence that these characteristics substantially modified sensitivity to the corresponding economic changes.
@@ -111,7 +113,7 @@ Lag sensitivity analysis also showed that these relationships are dynamic rather
 
 A separate predictive analysis asks whether characteristics known at mortgage origination can identify mortgages with elevated 24-month serious-delinquency risk.
 
-Models were evaluated using a strict out-of-time design:
+Models were evaluated using an out-of-time design:
 
 - **Training:** 2015–2019 vintages
 - **Validation:** 2020 vintage
@@ -161,7 +163,7 @@ For the highest predicted-risk decile:
 
 ![Serious delinquency lift by predicted-risk decile](reports/risk_decile_lift.png)
 
-The results suggest that the model is more useful for **risk stratification and prioritization** than as a perfectly calibrated estimate of absolute delinquency probability.
+The results suggest that the model is more useful for **relative risk stratification** than for estimating well-calibrated absolute delinquency probabilities.
 
 ## Databricks and PySpark
 
@@ -172,12 +174,18 @@ The Databricks workflow:
 - loaded the processed **397,423-row, 31-column** mortgage dataset into the Databricks workspace
 - queried the data through the Spark DataFrame API
 - reproduced mortgage counts and serious-delinquency rates across the 2015–2022 origination vintages
-- performed distributed aggregation of serious-delinquency incidence across credit-score groups
+- aggregated serious-delinquency incidence across credit-score groups using PySpark
 - validated that the Databricks results were consistent with the locally processed modeling dataset
 
 For example, the PySpark analysis showed a strong gradient in 24-month serious-delinquency incidence across credit-score groups, ranging from approximately **5.86% for mortgages with credit scores below 650** to approximately **0.43% for mortgages with scores of 800 or higher**.
 
-This portion of the project demonstrates how the analytical workflow can be transferred from local Pandas-based development to a cloud-based Spark environment for larger-scale data processing and analysis.
+This portion of the project demonstrates working with the processed modeling dataset in a Databricks/Spark environment and reproducing key analytical results with PySpark.
+
+## MLflow Experiment Tracking
+
+The selected logistic regression model was reproduced in Databricks using the 2015–2019 training vintages and 2020 validation vintage. MLflow was used to track the model configuration, validation ROC-AUC and PR-AUC, and the fitted model artifact with an input/output signature.
+
+This provides a reproducible record connecting the model specification to its validation performance without using the locked 2021–2022 test set for model selection.
 
 ## Business Implications
 
@@ -213,29 +221,46 @@ The project therefore emphasizes associations, robustness, temporal validation, 
 ## Repository Structure
 
 ```text
-Mortgage Risk Project/
-├── data/
-│   ├── processed/
-│   ├── raw_macro/
-│   └── raw_mortgage/
+mortgage-risk-economic-conditions/
+│
 ├── notebooks/
 │   ├── 01_data_ingestion.ipynb
 │   ├── 02_exploratory_analysis.ipynb
 │   ├── 03_baseline_model.ipynb
 │   ├── 04_multi_vintage_ingestion.ipynb
 │   ├── 05_macroeconomic_data.ipynb
-│   └── 06_databricks_analysis.ipynb
+│   ├── 06_databricks_analysis.ipynb
+│   └── 07_mlflow_experiment_tracking.ipynb
+│
+├── src/
+│   ├── data_processing.py
+│   └── make_figures.py
+│
 ├── reports/
 │   ├── out_of_time_performance.png
 │   ├── risk_decile_lift.png
 │   └── vintage_delinquency_rates.png
-├── src/
-│   ├── data_processing.py
-│   └── make_figures.py
+│
+├── data/                         # Local only; excluded from Git
+│   ├── processed/
+│   ├── raw_macro/
+│   └── raw_mortgage/
+│
 ├── .gitignore
 ├── README.md
 └── requirements.txt
 ```
+
+The `data/` directory is excluded from version control because the source and processed datasets are not distributed with the repository.
+
+## Reproducing the Analysis
+
+1. Download Freddie Mac sample files for 2015–2022.
+2. Place mortgage files under `data/raw_mortgage/`.
+3. Place BLS, FHFA, and Freddie Mac PMMS source files under `data/raw_macro/`.
+4. Install dependencies with `pip install -r requirements.txt`.
+5. Run notebooks `01`–`05` sequentially for the local data-processing, statistical-modeling, and predictive-modeling workflow.
+6. Notebooks `06` and `07` document the separate Databricks/PySpark and MLflow workflows.
 
 ## Tools and Technologies
 
@@ -243,5 +268,6 @@ Mortgage Risk Project/
 **Statistical Modeling:** statsmodels, scikit-learn  
 **Machine Learning:** Logistic Regression, Histogram Gradient Boosting  
 **Cloud & Distributed Computing:** Databricks, PySpark  
-**Visualization:** Matplotlib, Seaborn  
+**Experiment Tracking:** MLflow  
+**Visualization:** Matplotlib  
 **Version Control:** Git, GitHub
