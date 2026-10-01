@@ -1,0 +1,22 @@
+{
+  "project_title": "Mortgage Risk Under Changing Economic Conditions",
+  "dataset": "Freddie Mac Single-Family Loan-Level Dataset samples",
+  "vintages": [
+    2015,
+    2016,
+    2017,
+    2018,
+    2019,
+    2020,
+    2021,
+    2022
+  ],
+  "mortgages": 397423,
+  "target": "90+ day serious delinquency within the first 24 months",
+  "training_vintages": "2015\u20132019",
+  "validation_vintage": "2020",
+  "test_vintages": "2021\u20132022",
+  "model": "Logistic Regression",
+  "model_feature_count": 16,
+  "responsible_use": "This project is an educational portfolio analysis of historical mortgage performance. Results describe statistical associations and model behavior across historical loan cohorts and economic environments. They should not be interpreted as causal effects or used to make individual lending, underwriting, pricing, or eligibility decisions."
+}
